@@ -78,7 +78,7 @@ struct ObjectView: View {
 }
 
 #Preview {
-  @State var object = Object(
+  @Previewable @State var object = Object(
     objectID: 452174,
     title: "Bahram Gur Slays the Rhino-Wolf",
     creditLine: "Gift of Arthur A. Houghton Jr., 1970",
