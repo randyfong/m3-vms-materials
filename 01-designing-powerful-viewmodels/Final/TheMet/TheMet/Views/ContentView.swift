@@ -35,13 +35,13 @@ import SwiftUI
 struct ContentView: View {
   @State var store = TheMetStore()
   @State private var query = "rhino"
+  @State private var searchTerm = "rhino"
   @State private var showQueryField = false
-  @State private var fetchObjectsTask: Task<Void, Error>?
 
   var body: some View {
     NavigationStack {
       VStack {
-        Text("You searched for '\(query)'")
+        Text("You searched for '\(searchTerm)'")
           .padding(5)
           .background(Color.metForeground)
           .cornerRadius(10)
@@ -78,13 +78,7 @@ struct ContentView: View {
           actions: {
             TextField("Search the Met", text: $query)
             Button("Search") {
-              fetchObjectsTask?.cancel()
-              fetchObjectsTask = Task {
-                do {
-                  store.objects = []
-                  try await store.fetchObjects(for: query)
-                } catch {}
-              }
+              searchTerm = query
             }
           })
         .navigationDestination(for: URL.self) { url in
@@ -97,9 +91,11 @@ struct ContentView: View {
         if store.objects.isEmpty { ProgressView() }
       }
     }
-    .task {
+    .task(id: searchTerm) {
+      if searchTerm.isEmpty { return }
       do {
-        try await store.fetchObjects(for: query)
+        store.objects = []
+        try await store.fetchObjects(for: searchTerm)
       } catch {}
     }
   }
