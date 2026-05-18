@@ -32,7 +32,12 @@
 
 import Foundation
 
-struct TheMetService {
+protocol TheMetServing {
+  func getObjectIDs(from queryTerm: String) async throws -> ObjectIDs?
+  func getObject(from objectID: Int) async throws -> Object?
+}
+
+struct TheMetService: TheMetServing {
   let baseURLString = "https://collectionapi.metmuseum.org/public/collection/v1/"
   let session = URLSession.shared
   let decoder = JSONDecoder()

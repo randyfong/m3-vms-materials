@@ -35,11 +35,12 @@ import Foundation
 @Observable
 class TheMetStore {
   var objects: [Object] = []
-  private let service = TheMetService()
+  private let service: TheMetServing
   let maxIndex: Int
 
-  init(_ maxIndex: Int = 20) {
+  init(_ maxIndex: Int = 20, service: TheMetServing = TheMetService()) {
     self.maxIndex = maxIndex
+    self.service = service
   }
 
   func fetchObjects(for queryTerm: String) async throws {
