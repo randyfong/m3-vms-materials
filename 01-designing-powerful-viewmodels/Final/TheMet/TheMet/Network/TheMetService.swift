@@ -33,8 +33,14 @@
 import Foundation
 
 protocol TheMetServing {
-  func getObjectIDs(from queryTerm: String) async throws -> ObjectIDs?
-  func getObject(from objectID: Int) async throws -> Object?
+  func getObjectIDs(from queryTerm: String) async throws -> ObjectIDs
+  func getObject(from objectID: Int) async throws -> Object
+}
+
+enum TheMetServiceError: Error {
+  case invalidURL
+  case invalidResponse
+  case unsuccessfulResponse(statusCode: Int)
 }
 
 struct TheMetService: TheMetServing {
@@ -42,63 +48,49 @@ struct TheMetService: TheMetServing {
   let session = URLSession.shared
   let decoder = JSONDecoder()
 
-  func getObjectIDs(from queryTerm: String) async throws -> ObjectIDs? {
-    let objectIDs: ObjectIDs?
-
+  func getObjectIDs(from queryTerm: String) async throws -> ObjectIDs {
     guard var urlComponents = URLComponents(string: baseURLString + "search") else {
-      return nil
+      throw TheMetServiceError.invalidURL
     }
     let baseParams = ["hasImages": "true"]
     urlComponents.setQueryItems(with: baseParams)
 
     let term = queryTerm.isEmpty ? "the" : queryTerm
-    // swiftlint:disable:next force_unwrapping
-    urlComponents.queryItems! += [URLQueryItem(name: "q", value: term)]
+    urlComponents.queryItems = (urlComponents.queryItems ?? []) + [
+      URLQueryItem(name: "q", value: term)
+    ]
     
-    guard let queryURL = urlComponents.url else { return nil }
+    guard let queryURL = urlComponents.url else {
+      throw TheMetServiceError.invalidURL
+    }
     let request = URLRequest(url: queryURL)
 
     let (data, response) = try await session.data(for: request)
-    guard
-      let response = response as? HTTPURLResponse,
-      (200..<300).contains(response.statusCode)
-    else {
-      print(">>> getObjectIDs response outside bounds")
-      return nil
+    guard let response = response as? HTTPURLResponse else {
+      throw TheMetServiceError.invalidResponse
+    }
+    guard (200..<300).contains(response.statusCode) else {
+      throw TheMetServiceError.unsuccessfulResponse(statusCode: response.statusCode)
     }
 
-    do {
-      objectIDs = try decoder.decode(ObjectIDs.self, from: data)
-    } catch {
-      print(error)
-      return nil
-    }
-    return objectIDs
+    return try decoder.decode(ObjectIDs.self, from: data)
   }
 
-  func getObject(from objectID: Int) async throws -> Object? {
-    let object: Object?
-
+  func getObject(from objectID: Int) async throws -> Object {
     let objectURLString = baseURLString + "objects/\(objectID)"
-    guard let objectURL = URL(string: objectURLString) else { return nil }
+    guard let objectURL = URL(string: objectURLString) else {
+      throw TheMetServiceError.invalidURL
+    }
     let objectRequest = URLRequest(url: objectURL)
 
     let (data, response) = try await session.data(for: objectRequest)
-    if let response = response as? HTTPURLResponse {
-      let statusCode = response.statusCode
-      if !(200..<300).contains(statusCode) {
-        print(">>> getObject response \(statusCode) outside bounds")
-        print(">>> \(objectURLString)")
-        return nil
-      }
+    guard let response = response as? HTTPURLResponse else {
+      throw TheMetServiceError.invalidResponse
+    }
+    guard (200..<300).contains(response.statusCode) else {
+      throw TheMetServiceError.unsuccessfulResponse(statusCode: response.statusCode)
     }
 
-    do {
-      object = try decoder.decode(Object.self, from: data)
-    } catch {
-      print(error)
-      return nil
-    }
-    return object
+    return try decoder.decode(Object.self, from: data)
   }
 }
