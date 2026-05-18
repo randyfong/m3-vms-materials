@@ -80,7 +80,7 @@ struct ObjectView: View {
 #Preview {
   @Previewable @State var object = Object(
     objectID: 452174,
-    title: "Bahram Gur Slays the Rhino-Wolf",
+    title: "Bahram Gur Slays Mr Rhino-Wolf",
     creditLine: "Gift of Arthur A. Houghton Jr., 1970",
     objectURL: "https://www.metmuseum.org/art/collection/search/452174",
     isPublicDomain: true,
